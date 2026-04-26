@@ -1,0 +1,53 @@
+[
+  {
+    "code": "impressionism",
+    "name": "Impressionism",
+    "description": "Свет, быстрые мазки и внимание к атмосферным эффектам."
+  },
+  {
+    "code": "expressionism",
+    "name": "Expressionism",
+    "description": "Эмоциональная деформация формы и интенсивная цветовая палитра."
+  },
+  {
+    "code": "cubism",
+    "name": "Cubism",
+    "description": "Фрагментация объектов на геометрические плоскости."
+  },
+  {
+    "code": "surrealism",
+    "name": "Surrealism",
+    "description": "Сновидческие сцены, нелинейная логика и символизм."
+  },
+  {
+    "code": "baroque",
+    "name": "Baroque",
+    "description": "Драматический свет, насыщенные композиции и декоративность."
+  },
+  {
+    "code": "romanticism",
+    "name": "Romanticism",
+    "description": "Сильные эмоции, возвышенность и природная стихия."
+  },
+  {
+    "code": "renaissance",
+    "name": "Renaissance",
+    "description": "Гармония, перспектива и классическая пластика."
+  },
+  {
+    "code": "abstract",
+    "name": "Abstract Art",
+    "description": "Отказ от прямой репрезентации и акцент на форме и ритме."
+  },
+  {
+    "code": "pop_art",
+    "name": "Pop Art",
+    "description": "Массовая культура, яркие цвета и графическая четкость."
+  },
+  {
+    "code": "minimalism",
+    "name": "Minimalism",
+    "description": "Редукция средств, чистые формы и визуальная сдержанность."
+  }
+]
+

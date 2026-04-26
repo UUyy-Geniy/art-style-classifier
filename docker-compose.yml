@@ -1,0 +1,224 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: artstyle
+      POSTGRES_USER: artstyle
+      POSTGRES_PASSWORD: artstyle
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:4.8.1
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  mc:
+    image: minio/mc:RELEASE.2025-04-08T15-39-49Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        until mc alias set local http://minio:9000 "$${S3_ACCESS_KEY}" "$${S3_SECRET_KEY}" >/dev/null 2>&1; do
+          sleep 1
+        done
+        mc alias set local http://minio:9000 "$${S3_ACCESS_KEY}" "$${S3_SECRET_KEY}" >/dev/null
+        mc mb -p local/"$${S3_BUCKET_NAME}" || true
+        mc mb -p local/"$${MLFLOW_S3_BUCKET}" || true
+        mc anonymous set private local/"$${S3_BUCKET_NAME}" || true
+        mc anonymous set private local/"$${MLFLOW_S3_BUCKET}" || true
+        touch /tmp/bootstrap.done
+        trap : TERM INT
+        sleep infinity & wait
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-artstyle-images}
+      MLFLOW_S3_BUCKET: ${MLFLOW_S3_BUCKET:-mlflow-artifacts}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "test -f /tmp/bootstrap.done"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 2s
+
+  mlflow:
+    build:
+      context: .
+    depends_on:
+      postgres:
+        condition: service_started
+      mc:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - >
+        mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri "$${MLFLOW_DATABASE_URL_SYNC}"
+        --artifacts-destination "s3://$${MLFLOW_S3_BUCKET}"
+    environment:
+      MLFLOW_DATABASE_URL_SYNC: ${MLFLOW_DATABASE_URL_SYNC:-postgresql+psycopg2://artstyle:artstyle@postgres:5432/postgres}
+      MLFLOW_S3_BUCKET: ${MLFLOW_S3_BUCKET:-mlflow-artifacts}
+      MLFLOW_S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-minioadmin}
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+    ports:
+      - "5001:5000"
+
+  migrate:
+    build:
+      context: .
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://artstyle:artstyle@postgres:5432/artstyle}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC:-postgresql+psycopg://artstyle:artstyle@postgres:5432/artstyle}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672/}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-http://localhost:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+    command:
+      - sh
+      - -c
+      - >
+        alembic upgrade head
+
+  api:
+    build:
+      context: .
+    depends_on:
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      mc:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      APP_HOST: ${APP_HOST:-0.0.0.0}
+      APP_PORT: ${APP_PORT:-8000}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://artstyle:artstyle@postgres:5432/artstyle}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC:-postgresql+psycopg://artstyle:artstyle@postgres:5432/artstyle}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672/}
+      RABBITMQ_QUEUE_NAME: ${RABBITMQ_QUEUE_NAME:-artstyle.inference}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-http://localhost:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-artstyle-images}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+      MLFLOW_S3_BUCKET: ${MLFLOW_S3_BUCKET:-mlflow-artifacts}
+      MLFLOW_S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-minioadmin}
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+      DEFAULT_MODEL_NAME: ${DEFAULT_MODEL_NAME:-art-style-classifier}
+      DEFAULT_MODEL_VERSION: ${DEFAULT_MODEL_VERSION:-stub-v1}
+      DEFAULT_MODEL_SOURCE: ${DEFAULT_MODEL_SOURCE:-internal_stub}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me}
+      UPLOAD_MAX_SIZE_MB: ${UPLOAD_MAX_SIZE_MB:-10}
+      DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    command:
+      - sh
+      - -c
+      - >
+        uvicorn artstyle_backend.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+
+  worker:
+    build:
+      context: .
+    depends_on:
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      mc:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://artstyle:artstyle@postgres:5432/artstyle}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC:-postgresql+psycopg://artstyle:artstyle@postgres:5432/artstyle}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672/}
+      RABBITMQ_QUEUE_NAME: ${RABBITMQ_QUEUE_NAME:-artstyle.inference}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-http://localhost:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-artstyle-images}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+      MLFLOW_S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-minioadmin}
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+      DEFAULT_MODEL_NAME: ${DEFAULT_MODEL_NAME:-art-style-classifier}
+      DEFAULT_MODEL_VERSION: ${DEFAULT_MODEL_VERSION:-stub-v1}
+      DEFAULT_MODEL_SOURCE: ${DEFAULT_MODEL_SOURCE:-internal_stub}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me}
+      DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    command:
+      - sh
+      - -c
+      - >
+        python -m artstyle_backend.worker.main
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  minio_data:
