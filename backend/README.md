@@ -11,22 +11,24 @@
 
 `MLflow` использует отдельный `PostgreSQL` backend store (`postgres` database) и отдельный `psycopg2` SQLAlchemy dialect, чтобы не конфликтовать с `alembic_version` основного приложения и не упираться в несовместимость `MLflow` с `psycopg3` на запросах registry/experiments.
 
-## Запуск локально
+## Запуск полного dev-стека
 
-1. Создать `.env` из [.env.example](./.env.example).
-2. Поднять стек:
+Из корня репозитория:
 
 ```bash
 docker compose up --build
 ```
 
-3. Проверить сервисы:
+Проверить сервисы:
 
+- Frontend: `http://localhost:5173`
 - API: `http://localhost:8000/docs`
 - Adminer: `http://localhost:8080`
 - RabbitMQ UI: `http://localhost:15672`
 - MinIO Console: `http://localhost:9001`
 - MLflow: `http://localhost:5001`
+
+Frontend в Docker работает через Vite dev server. Запросы UI к `/v1/*` проксируются на backend service `api:8000`, поэтому отдельная настройка `VITE_API_BASE_URL` для Docker-режима не нужна.
 
 ## Основные API
 

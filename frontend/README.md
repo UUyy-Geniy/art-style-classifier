@@ -4,6 +4,24 @@ React/Vite frontend for the public Art Style Classifier API.
 
 ## Run locally
 
+### With Docker
+
+From the repository root:
+
+```bash
+docker compose up --build
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+In Docker dev mode, frontend requests to `/v1/*` are proxied by Vite to the backend container. Keep `VITE_API_BASE_URL` empty unless you intentionally want to bypass the proxy.
+
+### Without Docker
+
 ```bash
 npm install
 cp .env.example .env

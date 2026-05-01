@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     default_model_source: str = "internal_stub"
 
     admin_token: str = "change-me"
+    cors_allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     upload_max_size_mb: int = 10
     default_top_k: int = 5
     log_level: str = "INFO"
@@ -45,6 +46,10 @@ class Settings(BaseSettings):
     @property
     def upload_max_size_bytes(self) -> int:
         return self.upload_max_size_mb * 1024 * 1024
+
+    @property
+    def cors_allowed_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
 
 
 @lru_cache(maxsize=1)
