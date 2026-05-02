@@ -25,6 +25,13 @@ dependencies = [
   "psycopg2-binary==2.9.10",
   "sqlalchemy==2.0.40",
   "uvicorn[standard]==0.34.2",
+
+  # ML model dependencies
+  "transformers",
+  "Pillow",
+  "numpy",
+  "scikit-learn",
+  "joblib",
 ]
 
 [project.optional-dependencies]
