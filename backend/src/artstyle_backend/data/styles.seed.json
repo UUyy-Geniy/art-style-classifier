@@ -1,53 +1,102 @@
 [
   {
-    "code": "impressionism",
-    "name": "Impressionism",
-    "description": "Свет, быстрые мазки и внимание к атмосферным эффектам."
+    "code": "Abstract_Expressionism",
+    "name": "Abstract Expressionism",
+    "description": "Абстрактная живопись с акцентом на жест, цвет, энергию и эмоциональную выразительность."
   },
   {
-    "code": "expressionism",
-    "name": "Expressionism",
-    "description": "Эмоциональная деформация формы и интенсивная цветовая палитра."
+    "code": "Art_Nouveau",
+    "name": "Art Nouveau",
+    "description": "Декоративный стиль с плавными линиями, орнаментами и природными мотивами."
   },
   {
-    "code": "cubism",
-    "name": "Cubism",
-    "description": "Фрагментация объектов на геометрические плоскости."
-  },
-  {
-    "code": "surrealism",
-    "name": "Surrealism",
-    "description": "Сновидческие сцены, нелинейная логика и символизм."
-  },
-  {
-    "code": "baroque",
+    "code": "Baroque",
     "name": "Baroque",
-    "description": "Драматический свет, насыщенные композиции и декоративность."
+    "description": "Драматический свет, насыщенные композиции, контраст и выразительная динамика."
   },
   {
-    "code": "romanticism",
-    "name": "Romanticism",
-    "description": "Сильные эмоции, возвышенность и природная стихия."
+    "code": "Color_Field_Painting",
+    "name": "Color Field Painting",
+    "description": "Абстрактная живопись, основанная на больших цветовых полях и минимуме деталей."
   },
   {
-    "code": "renaissance",
-    "name": "Renaissance",
-    "description": "Гармония, перспектива и классическая пластика."
+    "code": "Cubism",
+    "name": "Cubism",
+    "description": "Фрагментация объектов на геометрические формы и одновременное изображение разных точек зрения."
   },
   {
-    "code": "abstract",
-    "name": "Abstract Art",
-    "description": "Отказ от прямой репрезентации и акцент на форме и ритме."
+    "code": "Early_Renaissance",
+    "name": "Early Renaissance",
+    "description": "Ранняя ренессансная живопись с развитием перспективы, объёма и гармоничной композиции."
   },
   {
-    "code": "pop_art",
-    "name": "Pop Art",
-    "description": "Массовая культура, яркие цвета и графическая четкость."
+    "code": "Expressionism",
+    "name": "Expressionism",
+    "description": "Эмоциональная деформация формы, интенсивная цветовая палитра и субъективное восприятие."
   },
   {
-    "code": "minimalism",
+    "code": "High_Renaissance",
+    "name": "High Renaissance",
+    "description": "Классическая гармония, пропорции, перспектива и идеализированная пластика."
+  },
+  {
+    "code": "Impressionism",
+    "name": "Impressionism",
+    "description": "Свет, быстрые мазки, пленэрность и внимание к атмосферным эффектам."
+  },
+  {
+    "code": "Mannerism_Late_Renaissance",
+    "name": "Mannerism / Late Renaissance",
+    "description": "Удлинённые пропорции, сложные позы, изысканность и напряжённые композиции позднего Возрождения."
+  },
+  {
+    "code": "Minimalism",
     "name": "Minimalism",
-    "description": "Редукция средств, чистые формы и визуальная сдержанность."
+    "description": "Редукция выразительных средств, чистые формы и визуальная сдержанность."
+  },
+  {
+    "code": "Naive_Art_Primitivism",
+    "name": "Naive Art / Primitivism",
+    "description": "Упрощённые формы, яркие цвета, непосредственная манера и намеренно неакадемичная перспектива."
+  },
+  {
+    "code": "Northern_Renaissance",
+    "name": "Northern Renaissance",
+    "description": "Детализированная живопись Северного Возрождения с вниманием к фактуре, символике и бытовым деталям."
+  },
+  {
+    "code": "Pop_Art",
+    "name": "Pop Art",
+    "description": "Массовая культура, яркие цвета, графическая чёткость и образы рекламы или комиксов."
+  },
+  {
+    "code": "Post_Impressionism",
+    "name": "Post-Impressionism",
+    "description": "Развитие импрессионизма с более выраженной структурой, символикой, цветом и авторской экспрессией."
+  },
+  {
+    "code": "Realism",
+    "name": "Realism",
+    "description": "Правдоподобное изображение людей, быта и окружающего мира без идеализации."
+  },
+  {
+    "code": "Rococo",
+    "name": "Rococo",
+    "description": "Изящные декоративные композиции, лёгкость, пастельные тона и камерные сцены."
+  },
+  {
+    "code": "Romanticism",
+    "name": "Romanticism",
+    "description": "Сильные эмоции, возвышенность, драматизм, природа и исторические или героические сюжеты."
+  },
+  {
+    "code": "Symbolism",
+    "name": "Symbolism",
+    "description": "Символические образы, мифологические мотивы, сновидческая атмосфера и скрытые смыслы."
+  },
+  {
+    "code": "Ukiyo_e",
+    "name": "Ukiyo-e",
+    "description": "Японская гравюра с плоскостной композицией, чётким контуром и сценами повседневной жизни, театра или природы."
   }
 ]
-
