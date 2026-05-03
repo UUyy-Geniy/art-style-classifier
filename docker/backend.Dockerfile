@@ -22,8 +22,8 @@ COPY backend/scripts /app/scripts
 
 RUN pip install --upgrade pip \
     && pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
-        torch==2.5.1+cpu \
-        torchvision==0.20.1+cpu \
+        torch==2.5.1 \
+        torchvision==0.20.1 \
     && pip install -e .[dev]
 
 RUN python -c "from transformers import AutoImageProcessor, AutoModel; \
