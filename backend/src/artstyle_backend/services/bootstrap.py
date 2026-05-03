@@ -10,13 +10,24 @@ from artstyle_backend.core.config import get_settings
 from artstyle_backend.db.models import ModelRegistryState, Style
 
 
+def load_seed_styles() -> list[dict]:
+    resource = resources.files("artstyle_backend.data").joinpath("styles.seed.json")
+    raw = resource.read_text(encoding="utf-8")
+    return json.loads(raw)
+
+
 async def ensure_seed_data(session: AsyncSession) -> None:
-    styles_count = await session.scalar(select(Style.id).limit(1))
-    if styles_count is None:
-        resource = resources.files("artstyle_backend.data").joinpath("styles.seed.json")
-        raw = resource.read_text(encoding="utf-8")
-        styles = json.loads(raw)
-        session.add_all([Style(**item) for item in styles])
+    seed_styles = load_seed_styles()
+    existing_styles = (await session.execute(select(Style))).scalars().all()
+    existing_by_code = {style.code: style for style in existing_styles}
+
+    for item in seed_styles:
+        style = existing_by_code.get(item["code"])
+        if style is None:
+            session.add(Style(**item))
+        else:
+            style.name = item["name"]
+            style.description = item.get("description")
 
     state = await session.get(ModelRegistryState, 1)
     if state is None:
@@ -31,4 +42,3 @@ async def ensure_seed_data(session: AsyncSession) -> None:
             )
         )
     await session.commit()
-
