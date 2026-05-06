@@ -44,7 +44,7 @@ class InternalStubModel:
             )
 
             meta_path = model_bundle_dir / (
-                "meta_v_final_top20_clsmean_noise001_smooth010_inv_sqrt_v2_1777663786.json"
+                "model_bundle\meta_v_final_top18_contemporary_merged_v1_1778096165.json"
             )
 
             if not meta_path.exists():
