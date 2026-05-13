@@ -48,6 +48,11 @@ After that start the stack:
 docker compose up --build
 ```
 
+On the first real inference/retrain run, the worker/API may download `facebook/dinov2-large`
+from HuggingFace. That happens at runtime and is cached in the Docker volume
+`huggingface_cache`, so later restarts reuse it. If you want to bake DINOv2 into the image
+instead, set `PRELOAD_DINOV2=1` in `.env`, but the initial Docker build will be much slower.
+
 Docker Compose project name is fixed as `art-style-classifier`, so Docker Desktop/OrbStack groups the stack under that name instead of deriving it from the repository folder.
 
 Main URLs:
@@ -72,6 +77,8 @@ Useful variables:
 - `ADMIN_TOKEN`: token required by `/v1/admin/*`, defaulting to `change-me`.
 - `MODEL_FEATURE_STORE_URL`: optional direct download URL for the large `.npz` used by feedback retraining.
 - `MODEL_FEATURE_STORE_SHA256`: optional checksum for verifying the downloaded `.npz`.
+- `PRELOAD_DINOV2`: default `0`. Set to `1` only when you want Docker build to preload DINOv2 into the image.
+- `HF_TOKEN`: optional HuggingFace token for higher rate limits during the first DINOv2 download.
 
 If frontend dependencies change and Docker keeps an old `node_modules` volume, recreate it:
 

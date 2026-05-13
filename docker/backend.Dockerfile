@@ -1,5 +1,7 @@
 FROM python:3.11-slim
 
+ARG PRELOAD_DINOV2=0
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -26,11 +28,15 @@ RUN pip install --upgrade pip \
         torchvision==0.20.1 \
     && pip install -e .[dev]
 
-RUN python -c "from transformers import AutoImageProcessor, AutoModel; \
+RUN if [ "$PRELOAD_DINOV2" = "1" ]; then \
+      python -c "from transformers import AutoImageProcessor, AutoModel; \
 model_name='facebook/dinov2-large'; \
 AutoImageProcessor.from_pretrained(model_name); \
 AutoModel.from_pretrained(model_name); \
-print('DINOv2-large downloaded and cached')"
+print('DINOv2-large downloaded and cached')"; \
+    else \
+      echo "Skipping DINOv2 preload during image build. Set PRELOAD_DINOV2=1 to enable it."; \
+    fi
 
 COPY backend/tests /app/tests
 

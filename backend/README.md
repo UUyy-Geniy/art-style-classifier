@@ -20,6 +20,16 @@ cp .env.example .env
 docker compose up --build
 ```
 
+По умолчанию Docker build не скачивает `facebook/dinov2-large` внутрь image.
+Первый inference/retrain скачает его в runtime и сохранит в Docker volume
+`huggingface_cache`. Если нужно заранее запечь DINOv2 в image, выставить в `.env`:
+
+```env
+PRELOAD_DINOV2=1
+```
+
+Это делает первый build заметно дольше.
+
 Проверить сервисы:
 
 - Frontend: `http://localhost:5173`

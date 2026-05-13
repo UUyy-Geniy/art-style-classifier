@@ -139,6 +139,8 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+      args:
+        PRELOAD_DINOV2: ${PRELOAD_DINOV2:-0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -167,6 +169,8 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+      args:
+        PRELOAD_DINOV2: ${PRELOAD_DINOV2:-0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -191,6 +195,8 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+      args:
+        PRELOAD_DINOV2: ${PRELOAD_DINOV2:-0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -230,6 +236,7 @@ services:
       DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       RETRAIN_FEEDBACK_EXPORT_DIR: ${RETRAIN_FEEDBACK_EXPORT_DIR:-/app/data/retrain_feedback}
+      HF_TOKEN: ${HF_TOKEN:-}
     command:
       - sh
       - -c
@@ -239,12 +246,15 @@ services:
       - "8000:8000"
     volumes:
       - retrain_feedback_data:/app/data/retrain_feedback
+      - huggingface_cache:/opt/huggingface
       - ./backend/src/artstyle_backend/ml_model/model_bundle:/app/src/artstyle_backend/ml_model/model_bundle
 
   worker:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+      args:
+        PRELOAD_DINOV2: ${PRELOAD_DINOV2:-0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -278,12 +288,14 @@ services:
       ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me}
       DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      HF_TOKEN: ${HF_TOKEN:-}
     command:
       - sh
       - -c
       - >
         python -m artstyle_backend.worker.main
     volumes:
+      - huggingface_cache:/opt/huggingface
       - ./backend/src/artstyle_backend/ml_model/model_bundle:/app/src/artstyle_backend/ml_model/model_bundle
 
   frontend:
@@ -312,4 +324,5 @@ volumes:
   rabbitmq_data:
   minio_data:
   retrain_feedback_data:
+  huggingface_cache:
   frontend_node_modules:
