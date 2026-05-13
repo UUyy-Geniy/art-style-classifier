@@ -16,6 +16,7 @@
 Из корня репозитория:
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
@@ -55,6 +56,21 @@ Frontend в Docker работает через Vite dev server. Запросы U
 ```text
 backend/src/artstyle_backend/ml_model/model_bundle/features_large_cls_mean_top18_contemporary_merged_v1.npz
 ```
+
+Этот `.npz` не хранится в Git: он весит больше лимита GitHub для обычного Git.
+Новый разработчик должен получить его из внешнего хранилища.
+
+Рекомендуемый bootstrap:
+
+```bash
+cp .env.example .env
+# затем заполнить MODEL_FEATURE_STORE_URL в .env
+docker compose --profile setup run --rm model-artifacts
+docker compose up --build
+```
+
+Можно также положить файл вручную в `backend/src/artstyle_backend/ml_model/model_bundle/`.
+Без этого файла inference работает, но feedback retrain не запустится.
 
 ## Feedback retrain
 
