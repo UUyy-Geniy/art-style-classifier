@@ -1,11 +1,46 @@
 import { useEffect, useMemo, useState } from "react";
-import { API_BASE_URL, getTaskResult, getTaskStatus, uploadImage } from "./api.js";
+import {
+  API_BASE_URL,
+  exportRetrainFeedback,
+  getAvailableModels,
+  getCurrentModel,
+  getRetrainJob,
+  getTaskResult,
+  getTaskStatus,
+  listRetrainJobs,
+  reloadWorkers,
+  runRetrain,
+  submitPredictionFeedback,
+  switchModel,
+  uploadImage,
+} from "./api.js";
 import "./App.css";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const POLLING_DELAY_MS = 1500;
 const POLLING_TIMEOUT_MS = 120000;
+const RETRAIN_POLLING_DELAY_MS = 2000;
+const STYLE_OPTIONS = [
+  { code: "Abstract_Expressionism", name: "Abstract Expressionism" },
+  { code: "Art_Nouveau", name: "Art Nouveau" },
+  { code: "Baroque", name: "Baroque" },
+  { code: "Contemporary_Art", name: "Contemporary Art" },
+  { code: "Cubism", name: "Cubism" },
+  { code: "Early_Renaissance", name: "Early Renaissance" },
+  { code: "Expressionism", name: "Expressionism" },
+  { code: "High_Renaissance", name: "High Renaissance" },
+  { code: "Impressionism", name: "Impressionism" },
+  { code: "Mannerism_Late_Renaissance", name: "Mannerism / Late Renaissance" },
+  { code: "Naive_Art_Primitivism", name: "Naive Art / Primitivism" },
+  { code: "Northern_Renaissance", name: "Northern Renaissance" },
+  { code: "Post_Impressionism", name: "Post-Impressionism" },
+  { code: "Realism", name: "Realism" },
+  { code: "Rococo", name: "Rococo" },
+  { code: "Romanticism", name: "Romanticism" },
+  { code: "Symbolism", name: "Symbolism" },
+  { code: "Ukiyo_e", name: "Ukiyo-e" },
+];
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -102,6 +137,311 @@ function TopKList({ items }) {
   );
 }
 
+function FeedbackPanel({
+  result,
+  selectedStyleCode,
+  feedbackStatus,
+  feedbackError,
+  isSubmittingFeedback,
+  onSelectedStyleCodeChange,
+  onSubmitFeedback,
+}) {
+  if (!result?.task_id) return null;
+
+  return (
+    <section className="card feedback-card">
+      <div>
+        <div className="section-label">Correction</div>
+        <h3>Submit correct style</h3>
+        <p>
+          If the prediction is wrong, choose the correct production style code and save it for the
+          next feedback retrain export.
+        </p>
+      </div>
+
+      <form className="feedback-form" onSubmit={onSubmitFeedback}>
+        <label htmlFor="correct-style">Correct style</label>
+        <div className="feedback-controls">
+          <select
+            id="correct-style"
+            value={selectedStyleCode}
+            disabled={isSubmittingFeedback}
+            onChange={(event) => onSelectedStyleCodeChange(event.target.value)}
+          >
+            {STYLE_OPTIONS.map((style) => (
+              <option value={style.code} key={style.code}>
+                {style.name} ({style.code})
+              </option>
+            ))}
+          </select>
+          <button className="primary-button" type="submit" disabled={isSubmittingFeedback}>
+            {isSubmittingFeedback ? "Saving..." : "Save correction"}
+          </button>
+        </div>
+      </form>
+
+      {feedbackStatus && <div className="success-box">{feedbackStatus}</div>}
+      {feedbackError && <div className="error-box">{feedbackError}</div>}
+    </section>
+  );
+}
+
+function AdminPanel({
+  adminToken,
+  adminResult,
+  adminError,
+  isAdminLoading,
+  switchForm,
+  retrainForm,
+  onAdminTokenChange,
+  onLoadCurrentModel,
+  onLoadAvailableModels,
+  onReloadWorkers,
+  onExportRetrainFeedback,
+  onListRetrainJobs,
+  onSwitchFormChange,
+  onSwitchModel,
+  onRetrainFormChange,
+  onRunRetrain,
+}) {
+  return (
+    <main className="page-shell admin-page">
+      <section className="admin-hero">
+        <div>
+          <div className="section-label">Admin</div>
+          <h1>Operations Console</h1>
+          <p className="hero-text">
+            Manage serving state, inspect available model registry entries, reload workers, and
+            export approved feedback for retraining.
+          </p>
+        </div>
+        <nav className="admin-nav" aria-label="Admin navigation">
+          <a href="/">Classifier</a>
+          <span>/v1/admin</span>
+        </nav>
+      </section>
+
+      <div className="admin-layout">
+        <section className="card admin-card">
+          <div className="admin-card-heading">
+            <div>
+              <div className="section-label">Auth</div>
+              <h2>Access</h2>
+            </div>
+            <span className="admin-endpoint">X-Admin-Token</span>
+          </div>
+
+          <label className="admin-token-field" htmlFor="admin-token">
+            <span>Admin token</span>
+            <input
+              id="admin-token"
+              type="password"
+              autoComplete="off"
+              value={adminToken}
+              placeholder="change-me"
+              onChange={(event) => onAdminTokenChange(event.target.value)}
+            />
+          </label>
+        </section>
+
+        <section className="card admin-card">
+          <div className="admin-card-heading">
+            <div>
+              <div className="section-label">Serving</div>
+              <h2>Model state</h2>
+            </div>
+            <span className="admin-endpoint">models</span>
+          </div>
+
+          <div className="admin-actions">
+            <button className="ghost-button" type="button" disabled={isAdminLoading} onClick={onLoadCurrentModel}>
+              Current model
+            </button>
+            <button className="ghost-button" type="button" disabled={isAdminLoading} onClick={onLoadAvailableModels}>
+              Available models
+            </button>
+            <button className="primary-button" type="button" disabled={isAdminLoading} onClick={onReloadWorkers}>
+              Reload workers
+            </button>
+          </div>
+        </section>
+
+        <section className="card admin-card">
+          <div className="admin-card-heading">
+            <div>
+              <div className="section-label">Switch</div>
+              <h2>Activate model</h2>
+            </div>
+            <span className="admin-endpoint">models/switch</span>
+          </div>
+
+          <form className="admin-form" onSubmit={onSwitchModel}>
+            <label>
+              <span>Model source</span>
+              <select
+                value={switchForm.model_source}
+                onChange={(event) => onSwitchFormChange("model_source", event.target.value)}
+              >
+                <option value="internal_stub">internal_stub</option>
+                <option value="mlflow">mlflow</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Model name</span>
+              <input
+                value={switchForm.model_name}
+                placeholder="art-style-classifier"
+                onChange={(event) => onSwitchFormChange("model_name", event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Model version</span>
+              <input
+                value={switchForm.model_version}
+                placeholder="stub-v1"
+                onChange={(event) => onSwitchFormChange("model_version", event.target.value)}
+              />
+            </label>
+
+            <button className="primary-button" type="submit" disabled={isAdminLoading}>
+              Switch model
+            </button>
+          </form>
+        </section>
+
+        <section className="card admin-card">
+          <div className="admin-card-heading">
+            <div>
+              <div className="section-label">Retrain</div>
+              <h2>Feedback export</h2>
+            </div>
+            <span className="admin-endpoint">retrain/export</span>
+          </div>
+
+          <div className="admin-actions">
+            <button className="primary-button" type="button" disabled={isAdminLoading} onClick={onExportRetrainFeedback}>
+              Export feedback CSV
+            </button>
+            <button className="ghost-button" type="button" disabled={isAdminLoading} onClick={onListRetrainJobs}>
+              Retrain jobs
+            </button>
+          </div>
+        </section>
+
+        <section className="card admin-card admin-card-wide">
+          <div className="admin-card-heading">
+            <div>
+              <div className="section-label">Training</div>
+              <h2>Run retrain</h2>
+            </div>
+            <span className="admin-endpoint">retrain/run</span>
+          </div>
+
+          <form className="admin-form admin-form-grid" onSubmit={onRunRetrain}>
+            <label className="admin-field-wide">
+              <span>Feedback CSV path</span>
+              <input
+                value={retrainForm.feedback_csv}
+                required
+                placeholder="/app/data/retrain_feedback/<timestamp>/approved_feedback.csv"
+                onChange={(event) => onRetrainFormChange("feedback_csv", event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Min feedback</span>
+              <input
+                type="number"
+                min="1"
+                value={retrainForm.min_new_feedback}
+                onChange={(event) => onRetrainFormChange("min_new_feedback", event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Feedback repeat</span>
+              <input
+                type="number"
+                min="1"
+                value={retrainForm.feedback_repeat}
+                onChange={(event) => onRetrainFormChange("feedback_repeat", event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Epochs</span>
+              <input
+                type="number"
+                min="1"
+                value={retrainForm.epochs}
+                onChange={(event) => onRetrainFormChange("epochs", event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Batch size</span>
+              <input
+                type="number"
+                min="1"
+                value={retrainForm.batch_size}
+                onChange={(event) => onRetrainFormChange("batch_size", event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Min val accuracy</span>
+              <input
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                value={retrainForm.min_val_acc}
+                onChange={(event) => onRetrainFormChange("min_val_acc", event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Device</span>
+              <select
+                value={retrainForm.device}
+                onChange={(event) => onRetrainFormChange("device", event.target.value)}
+              >
+                <option value="auto">auto</option>
+                <option value="cpu">cpu</option>
+                <option value="cuda">cuda</option>
+              </select>
+            </label>
+
+            <label className="admin-checkbox">
+              <input
+                type="checkbox"
+                checked={retrainForm.activate}
+                onChange={(event) => onRetrainFormChange("activate", event.target.checked)}
+              />
+              <span>Activate if validation passes</span>
+            </label>
+
+            <button className="primary-button admin-field-wide" type="submit" disabled={isAdminLoading}>
+              {isAdminLoading ? "Running..." : "Run retrain"}
+            </button>
+          </form>
+        </section>
+      </div>
+
+      {adminError && <div className="error-box admin-message">{adminError}</div>}
+
+      {adminResult && (
+        <section className="admin-result">
+          <div className="admin-result-title">{adminResult.title}</div>
+          <pre>{JSON.stringify(adminResult.data, null, 2)}</pre>
+        </section>
+      )}
+    </main>
+  );
+}
+
 export default function App() {
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -111,8 +451,32 @@ export default function App() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedStyleCode, setSelectedStyleCode] = useState("Contemporary_Art");
+  const [feedbackStatus, setFeedbackStatus] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [adminToken, setAdminToken] = useState(() => localStorage.getItem("artstyleAdminToken") || "");
+  const [adminResult, setAdminResult] = useState(null);
+  const [adminError, setAdminError] = useState("");
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
+  const [switchForm, setSwitchForm] = useState({
+    model_source: "internal_stub",
+    model_name: "art-style-classifier",
+    model_version: "stub-v1",
+  });
+  const [retrainForm, setRetrainForm] = useState({
+    feedback_csv: localStorage.getItem("artstyleRetrainFeedbackCsv") || "",
+    min_new_feedback: "20",
+    feedback_repeat: "3",
+    epochs: "30",
+    batch_size: "256",
+    min_val_acc: "0.60",
+    device: "auto",
+    activate: false,
+  });
 
   const canSubmit = useMemo(() => Boolean(file) && !isLoading, [file, isLoading]);
+  const isAdminRoute = window.location.pathname === "/admin";
 
   useEffect(() => {
     if (!file) {
@@ -126,11 +490,29 @@ export default function App() {
     return () => URL.revokeObjectURL(objectUrl);
   }, [file]);
 
+  useEffect(() => {
+    if (adminToken) {
+      localStorage.setItem("artstyleAdminToken", adminToken);
+    } else {
+      localStorage.removeItem("artstyleAdminToken");
+    }
+  }, [adminToken]);
+
+  useEffect(() => {
+    if (retrainForm.feedback_csv) {
+      localStorage.setItem("artstyleRetrainFeedbackCsv", retrainForm.feedback_csv);
+    } else {
+      localStorage.removeItem("artstyleRetrainFeedbackCsv");
+    }
+  }, [retrainForm.feedback_csv]);
+
   function chooseFile(selectedFile) {
     setError("");
     setResult(null);
     setTaskId("");
     setStatus("");
+    setFeedbackStatus("");
+    setFeedbackError("");
 
     const validationError = validateImage(selectedFile);
     if (validationError) {
@@ -186,6 +568,7 @@ export default function App() {
 
       setResult(predictionResult);
       setStatus(predictionResult.status || "succeeded");
+      setSelectedStyleCode(predictionResult.top_prediction?.style?.code || "Contemporary_Art");
     } catch (caughtError) {
       setError(caughtError.message || "Something went wrong.");
       setStatus("failed");
@@ -207,6 +590,143 @@ export default function App() {
     setStatus("");
     setResult(null);
     setError("");
+    setFeedbackStatus("");
+    setFeedbackError("");
+    setSelectedStyleCode("Contemporary_Art");
+  }
+
+  async function handleSubmitFeedback(event) {
+    event.preventDefault();
+
+    if (!result?.task_id) {
+      setFeedbackError("Classification result is required before submitting feedback.");
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    setFeedbackError("");
+    setFeedbackStatus("");
+
+    try {
+      const feedback = await submitPredictionFeedback(result.task_id, selectedStyleCode);
+      setFeedbackStatus(
+        `Saved feedback #${feedback.feedback_id}: ${feedback.predicted_style_code} → ${feedback.correct_style_code}.`
+      );
+    } catch (caughtError) {
+      setFeedbackError(caughtError.message || "Could not save feedback.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  }
+
+  async function runAdminAction(title, action) {
+    if (!adminToken.trim()) {
+      setAdminError("Enter admin token first.");
+      return;
+    }
+
+    setIsAdminLoading(true);
+    setAdminError("");
+
+    try {
+      const data = await action(adminToken.trim());
+      setAdminResult({ title, data });
+      if (title === "Retrain feedback export" && data?.payload_preview?.csv_path) {
+        setRetrainForm((current) => ({
+          ...current,
+          feedback_csv: data.payload_preview.csv_path,
+        }));
+      }
+    } catch (caughtError) {
+      setAdminError(caughtError.message || "Admin request failed.");
+    } finally {
+      setIsAdminLoading(false);
+    }
+  }
+
+  async function pollRetrainJob(token, job) {
+    let currentJob = job;
+    setAdminResult({ title: `Retrain job ${currentJob.job_id}`, data: currentJob });
+
+    while (currentJob.status === "running") {
+      await sleep(RETRAIN_POLLING_DELAY_MS);
+      currentJob = await getRetrainJob(token, currentJob.job_id);
+      setAdminResult({ title: `Retrain job ${currentJob.job_id}`, data: currentJob });
+    }
+
+    return currentJob;
+  }
+
+  function updateSwitchForm(field, value) {
+    setSwitchForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function updateRetrainForm(field, value) {
+    setRetrainForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function handleSwitchModel(event) {
+    event.preventDefault();
+
+    await runAdminAction("Switch model", (token) =>
+      switchModel(token, {
+        model_source: switchForm.model_source,
+        model_name: switchForm.model_name.trim() || undefined,
+        model_version: switchForm.model_version.trim(),
+      })
+    );
+  }
+
+  async function handleRunRetrain(event) {
+    event.preventDefault();
+
+    if (!retrainForm.feedback_csv.trim()) {
+      setAdminError("Run Export feedback CSV first or paste the CSV path.");
+      return;
+    }
+
+    await runAdminAction("Run retrain", async (token) => {
+      const job = await runRetrain(token, {
+        feedback_csv: retrainForm.feedback_csv.trim(),
+        min_new_feedback: Number(retrainForm.min_new_feedback),
+        feedback_repeat: Number(retrainForm.feedback_repeat),
+        epochs: Number(retrainForm.epochs),
+        batch_size: Number(retrainForm.batch_size),
+        min_val_acc: Number(retrainForm.min_val_acc),
+        device: retrainForm.device,
+        activate: Boolean(retrainForm.activate),
+      });
+      return pollRetrainJob(token, job);
+    });
+  }
+
+  if (isAdminRoute) {
+    return (
+      <AdminPanel
+        adminToken={adminToken}
+        adminResult={adminResult}
+        adminError={adminError}
+        isAdminLoading={isAdminLoading}
+        switchForm={switchForm}
+        retrainForm={retrainForm}
+        onAdminTokenChange={setAdminToken}
+        onLoadCurrentModel={() => runAdminAction("Current model", getCurrentModel)}
+        onLoadAvailableModels={() => runAdminAction("Available models", getAvailableModels)}
+        onReloadWorkers={() => runAdminAction("Reload workers", reloadWorkers)}
+        onExportRetrainFeedback={() => runAdminAction("Retrain feedback export", exportRetrainFeedback)}
+        onListRetrainJobs={() => runAdminAction("Retrain jobs", listRetrainJobs)}
+        onSwitchFormChange={updateSwitchForm}
+        onSwitchModel={handleSwitchModel}
+        onRetrainFormChange={updateRetrainForm}
+        onRunRetrain={handleRunRetrain}
+      />
+    );
   }
 
   return (
@@ -219,7 +739,10 @@ export default function App() {
             Upload an artwork image and get the predicted art style with confidence scores.
           </p>
         </div>
-        <div className="api-pill">API: {API_BASE_URL}/v1</div>
+        <div className="hero-actions">
+          <a className="api-pill" href="/admin">Admin console</a>
+          <div className="api-pill">API: {API_BASE_URL}/v1</div>
+        </div>
       </section>
 
       <div className="grid-layout">
@@ -299,6 +822,15 @@ export default function App() {
       {result && (
         <div className="results-stack">
           <PredictionCard result={result} />
+          <FeedbackPanel
+            result={result}
+            selectedStyleCode={selectedStyleCode}
+            feedbackStatus={feedbackStatus}
+            feedbackError={feedbackError}
+            isSubmittingFeedback={isSubmittingFeedback}
+            onSelectedStyleCodeChange={setSelectedStyleCode}
+            onSubmitFeedback={handleSubmitFeedback}
+          />
           <TopKList items={result.top_k} />
 
           <section className="card details-card">

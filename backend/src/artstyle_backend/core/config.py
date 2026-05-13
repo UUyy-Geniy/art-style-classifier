@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     upload_max_size_mb: int = 10
     default_top_k: int = 5
     log_level: str = "INFO"
+    retrain_feedback_export_dir: str = "/app/data/retrain_feedback"
 
     @property
     def upload_max_size_bytes(self) -> int:

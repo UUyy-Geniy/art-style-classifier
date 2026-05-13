@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from artstyle_backend.core.database import Base
-from artstyle_backend.domain import AdminActionType, TaskStatus
+from artstyle_backend.domain import AdminActionType, FeedbackStatus, TaskStatus
 
 
 class Style(Base):
@@ -58,6 +58,11 @@ class Prediction(Base):
 
     task: Mapped[InferenceTask] = relationship(back_populates="prediction")
     top_style: Mapped[Style] = relationship(foreign_keys=[top_style_id])
+    feedback: Mapped["PredictionFeedback | None"] = relationship(
+        back_populates="prediction",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
     candidates: Mapped[list["PredictionCandidate"]] = relationship(
         back_populates="prediction",
         cascade="all, delete-orphan",
@@ -76,6 +81,26 @@ class PredictionCandidate(Base):
 
     prediction: Mapped[Prediction] = relationship(back_populates="candidates")
     style: Mapped[Style] = relationship()
+
+
+class PredictionFeedback(Base):
+    __tablename__ = "prediction_feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    task_id: Mapped[str] = mapped_column(ForeignKey("inference_tasks.id"), unique=True, index=True)
+    prediction_id: Mapped[int] = mapped_column(ForeignKey("predictions.id"))
+    correct_style_id: Mapped[int] = mapped_column(ForeignKey("styles.id"))
+    status: Mapped[str] = mapped_column(String(32), default=FeedbackStatus.APPROVED.value, index=True)
+    used_in_training: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    used_in_training_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    task: Mapped[InferenceTask] = relationship()
+    prediction: Mapped[Prediction] = relationship(back_populates="feedback")
+    correct_style: Mapped[Style] = relationship()
 
 
 class ModelRegistryState(Base):
@@ -115,4 +140,3 @@ class AdminActionLog(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-

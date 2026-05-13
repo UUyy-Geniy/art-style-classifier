@@ -19,3 +19,4 @@ frontend/.env.*
 **/build/
 **/.cache/
 **/.vite/
+backend/src/artstyle_backend/ml_model/model_bundle/*.npz

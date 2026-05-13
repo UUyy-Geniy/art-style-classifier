@@ -47,3 +47,18 @@ class PredictionResultResponse(BaseModel):
     top_k: list[PredictionCandidateResponse] = Field(default_factory=list)
     completed_at: datetime
 
+
+class PredictionFeedbackRequest(BaseModel):
+    correct_style_code: str
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class PredictionFeedbackResponse(BaseModel):
+    feedback_id: int
+    task_id: str
+    correct_style_code: str
+    predicted_style_code: str
+    model_version: str
+    status: str
+    used_in_training: bool
+    created_at: datetime

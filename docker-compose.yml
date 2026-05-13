@@ -192,6 +192,7 @@ services:
       UPLOAD_MAX_SIZE_MB: ${UPLOAD_MAX_SIZE_MB:-10}
       DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RETRAIN_FEEDBACK_EXPORT_DIR: ${RETRAIN_FEEDBACK_EXPORT_DIR:-/app/data/retrain_feedback}
     command:
       - sh
       - -c
@@ -199,6 +200,9 @@ services:
         uvicorn artstyle_backend.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+    volumes:
+      - retrain_feedback_data:/app/data/retrain_feedback
+      - ./backend/src/artstyle_backend/ml_model/model_bundle:/app/src/artstyle_backend/ml_model/model_bundle
 
   worker:
     build:
@@ -242,6 +246,8 @@ services:
       - -c
       - >
         python -m artstyle_backend.worker.main
+    volumes:
+      - ./backend/src/artstyle_backend/ml_model/model_bundle:/app/src/artstyle_backend/ml_model/model_bundle
 
   frontend:
     build:
@@ -268,4 +274,5 @@ volumes:
   postgres_data:
   rabbitmq_data:
   minio_data:
+  retrain_feedback_data:
   frontend_node_modules:

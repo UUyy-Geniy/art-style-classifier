@@ -20,3 +20,7 @@ class AdminActionType(str, Enum):
     RELOAD_WORKERS = "reload_workers"
     EXPORT_RETRAIN = "export_retrain"
 
+
+class FeedbackStatus(str, Enum):
+    APPROVED = "approved"
+    REJECTED = "rejected"

@@ -4,6 +4,7 @@ from artstyle_backend.db.models import (
     ModelRegistryState,
     Prediction,
     PredictionCandidate,
+    PredictionFeedback,
     RetrainExport,
     Style,
 )
@@ -14,7 +15,7 @@ __all__ = [
     "ModelRegistryState",
     "Prediction",
     "PredictionCandidate",
+    "PredictionFeedback",
     "RetrainExport",
     "Style",
 ]
-

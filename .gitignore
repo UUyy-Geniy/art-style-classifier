@@ -39,3 +39,5 @@ Thumbs.db
 .vite/
 coverage/
 
+# Local ML artifacts are mounted/provisioned outside Git.
+backend/src/artstyle_backend/ml_model/model_bundle/*.npz

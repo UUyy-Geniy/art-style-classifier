@@ -8,12 +8,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from artstyle_backend.api.deps import get_storage
 from artstyle_backend.core.database import get_db_session
 from artstyle_backend.domain import TaskStatus
-from artstyle_backend.schemas.tasks import PredictionResultResponse, TaskStatusResponse
+from artstyle_backend.schemas.tasks import (
+    PredictionFeedbackRequest,
+    PredictionFeedbackResponse,
+    PredictionResultResponse,
+    TaskStatusResponse,
+)
 from artstyle_backend.services.storage import StorageService
 from artstyle_backend.services.tasks import (
     assemble_prediction_response,
     get_task_status_or_404,
     get_task_with_prediction_or_404,
+    save_prediction_feedback,
 )
 
 router = APIRouter()
@@ -49,3 +55,27 @@ async def get_task_result(
         )
     return assemble_prediction_response(task, storage)
 
+
+@router.post("/tasks/{task_id}/feedback", response_model=PredictionFeedbackResponse)
+async def submit_prediction_feedback(
+    task_id: str,
+    payload: PredictionFeedbackRequest,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> PredictionFeedbackResponse:
+    feedback = await save_prediction_feedback(
+        session=session,
+        task_id=task_id,
+        correct_style_code=payload.correct_style_code,
+        notes=payload.notes,
+    )
+    prediction = feedback.prediction
+    return PredictionFeedbackResponse(
+        feedback_id=feedback.id,
+        task_id=feedback.task_id,
+        correct_style_code=feedback.correct_style.code,
+        predicted_style_code=prediction.top_style.code,
+        model_version=prediction.model_version,
+        status=feedback.status,
+        used_in_training=feedback.used_in_training,
+        created_at=feedback.created_at,
+    )

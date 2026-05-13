@@ -58,6 +58,8 @@ async def test_ensure_seed_data_adds_missing_model_style_codes() -> None:
     added_codes = {item.code for item in session.added if isinstance(item, Style)}
     assert "Abstract_Expressionism" in added_codes
     assert "Ukiyo_e" in added_codes
+    assert "Contemporary_Art" in added_codes
+    assert "Pop_Art" not in added_codes
     assert "pop_art" not in added_codes
-    assert existing[1].name == "Pop Art"
+    assert existing[1].name == "Outdated"
     assert session.committed is True

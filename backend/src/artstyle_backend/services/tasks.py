@@ -9,7 +9,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from artstyle_backend.db.models import InferenceTask, Prediction, PredictionCandidate, Style
+from artstyle_backend.db.models import (
+    InferenceTask,
+    Prediction,
+    PredictionCandidate,
+    PredictionFeedback,
+    Style,
+)
+from artstyle_backend.domain import FeedbackStatus
 from artstyle_backend.domain import TaskStatus
 from artstyle_backend.messaging.publisher import RabbitMQPublisher
 from artstyle_backend.schemas.messages import InferenceTaskMessage
@@ -157,6 +164,65 @@ async def persist_prediction_result(
     await session.commit()
 
 
+async def save_prediction_feedback(
+    session: AsyncSession,
+    task_id: str,
+    correct_style_code: str,
+    notes: str | None = None,
+) -> PredictionFeedback:
+    task = await get_task_with_prediction_or_404(session, task_id)
+    if task.status != TaskStatus.SUCCEEDED.value or task.prediction is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Prediction result is not ready yet.",
+        )
+
+    correct_style = (
+        await session.execute(select(Style).where(Style.code == correct_style_code))
+    ).scalar_one_or_none()
+    if correct_style is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown style code: {correct_style_code}",
+        )
+
+    existing_feedback = (
+        await session.execute(
+            select(PredictionFeedback).where(PredictionFeedback.task_id == task.id)
+        )
+    ).scalar_one_or_none()
+
+    if existing_feedback is None:
+        feedback = PredictionFeedback(
+            task_id=task.id,
+            prediction_id=task.prediction.id,
+            correct_style_id=correct_style.id,
+            status=FeedbackStatus.APPROVED.value,
+            notes=notes,
+        )
+        session.add(feedback)
+    else:
+        feedback = existing_feedback
+        feedback.correct_style_id = correct_style.id
+        feedback.status = FeedbackStatus.APPROVED.value
+        feedback.used_in_training = False
+        feedback.used_in_training_at = None
+        feedback.notes = notes
+
+    await session.commit()
+    saved_feedback = (
+        await session.execute(
+            select(PredictionFeedback)
+            .where(PredictionFeedback.id == feedback.id)
+            .options(
+                selectinload(PredictionFeedback.correct_style),
+                selectinload(PredictionFeedback.prediction).selectinload(Prediction.top_style),
+            )
+        )
+    ).scalar_one()
+    return saved_feedback
+
+
 def assemble_prediction_response(task: InferenceTask, storage: StorageService) -> PredictionResultResponse:
     prediction = task.prediction
     assert prediction is not None
@@ -187,4 +253,3 @@ def assemble_prediction_response(task: InferenceTask, storage: StorageService) -
         top_k=candidates,
         completed_at=task.finished_at or prediction.created_at,
     )
-

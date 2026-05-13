@@ -31,7 +31,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -106,6 +107,14 @@ h2 {
   color: var(--text-muted);
   background: rgba(0, 0, 0, 0.18);
   font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .grid-layout {
@@ -425,6 +434,64 @@ h2 {
   color: var(--accent-strong);
 }
 
+.feedback-card {
+  display: grid;
+  gap: 18px;
+}
+
+.feedback-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.feedback-card p {
+  margin-bottom: 0;
+  max-width: 760px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.feedback-form {
+  display: grid;
+  gap: 10px;
+}
+
+.feedback-form label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.feedback-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.feedback-controls select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0 14px;
+  color: #f6f1e9;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.feedback-controls option {
+  color: #17130a;
+  background: #fff;
+}
+
+.success-box {
+  border: 1px solid rgba(142, 227, 163, 0.55);
+  border-radius: 18px;
+  padding: 14px;
+  color: #d9ffe1;
+  background: rgba(142, 227, 163, 0.1);
+}
+
 .details-card dl {
   display: grid;
   gap: 12px;
@@ -454,6 +521,163 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.admin-page {
+  width: min(1240px, calc(100% - 32px));
+}
+
+.admin-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-nav a,
+.admin-nav span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 14px;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.admin-card {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.admin-card-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.admin-card-heading h2 {
+  margin-bottom: 0;
+  font-size: clamp(1.5rem, 3vw, 2.3rem);
+}
+
+.admin-endpoint {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 10px;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.16);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.admin-token-field,
+.admin-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-token-field span,
+.admin-form span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.admin-token-field input,
+.admin-form input,
+.admin-form select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 13px 14px;
+  color: #f6f1e9;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.admin-form {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-form-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-field-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-checkbox {
+  align-content: end;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+}
+
+.admin-checkbox input {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-message,
+.admin-result {
+  margin-top: 20px;
+}
+
+.admin-result {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.admin-result-title {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 14px;
+  color: var(--accent-strong);
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.admin-result pre {
+  margin: 0;
+  max-height: 360px;
+  overflow: auto;
+  padding: 14px;
+  color: #f6f1e9;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -462,12 +686,20 @@ h2 {
 
 @media (max-width: 860px) {
   .hero,
+  .admin-hero,
   .prediction-layout,
-  .grid-layout {
+  .grid-layout,
+  .admin-layout,
+  .admin-form-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero {
+  .admin-field-wide {
+    grid-column: auto;
+  }
+
+  .hero,
+  .admin-hero {
     display: grid;
   }
 
@@ -497,8 +729,14 @@ h2 {
   }
 
   .status-panel,
-  .details-card div {
+  .details-card div,
+  .feedback-controls,
+  .admin-card-heading {
     grid-template-columns: 1fr;
+  }
+
+  .admin-card-heading {
+    display: grid;
   }
 
   .candidate-row {
