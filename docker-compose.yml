@@ -98,43 +98,6 @@ services:
       retries: 12
       start_period: 2s
 
-  model-artifacts:
-    image: curlimages/curl:8.11.1
-    profiles:
-      - setup
-    user: "0:0"
-    entrypoint: /bin/sh
-    command:
-      - -c
-      - |
-        set -eu
-        target="/model_bundle/features_large_cls_mean_top18_contemporary_merged_v1.npz"
-        if [ -f "$$target" ]; then
-          echo "Feature store already exists: $$target"
-          exit 0
-        fi
-        if [ -z "$${MODEL_FEATURE_STORE_URL:-}" ]; then
-          echo "MODEL_FEATURE_STORE_URL is not set."
-          echo "Set it in .env or put features_large_cls_mean_top18_contemporary_merged_v1.npz into backend/src/artstyle_backend/ml_model/model_bundle manually."
-          exit 2
-        fi
-        curl -L --fail --show-error --progress-bar "$${MODEL_FEATURE_STORE_URL}" -o "$$target.tmp"
-        if [ -n "$${MODEL_FEATURE_STORE_SHA256:-}" ]; then
-          actual="$$(sha256sum "$$target.tmp" | awk '{print $$1}')"
-          if [ "$$actual" != "$${MODEL_FEATURE_STORE_SHA256}" ]; then
-            rm -f "$$target.tmp"
-            echo "SHA256 mismatch. expected=$${MODEL_FEATURE_STORE_SHA256} actual=$$actual"
-            exit 3
-          fi
-        fi
-        mv "$$target.tmp" "$$target"
-        echo "Downloaded $$target"
-    environment:
-      MODEL_FEATURE_STORE_URL: ${MODEL_FEATURE_STORE_URL:-}
-      MODEL_FEATURE_STORE_SHA256: ${MODEL_FEATURE_STORE_SHA256:-}
-    volumes:
-      - ./backend/src/artstyle_backend/ml_model/model_bundle:/model_bundle
-
   mlflow:
     build:
       context: .
