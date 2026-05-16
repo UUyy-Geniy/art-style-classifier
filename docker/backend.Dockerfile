@@ -26,12 +26,6 @@ RUN pip install --upgrade pip \
         torchvision==0.20.1 \
     && pip install -e .[dev]
 
-RUN python -c "from transformers import AutoImageProcessor, AutoModel; \
-model_name='facebook/dinov2-large'; \
-AutoImageProcessor.from_pretrained(model_name); \
-AutoModel.from_pretrained(model_name); \
-print('DINOv2-large downloaded and cached')"
-
 COPY backend/tests /app/tests
 
 CMD ["uvicorn", "artstyle_backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
